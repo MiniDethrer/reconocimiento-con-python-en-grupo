@@ -1,6 +1,6 @@
 import cv2
 import os
-import urllib.request # Biblioteca estándar de Python para manejar URLs
+import urllib.request
 
 # --- Descarga del modelo Haar Cascade (usando urllib) ---
 ruta_cascade = "haarcascade_frontalface_default.xml"
@@ -10,19 +10,17 @@ url_cascade = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarc
 if not os.path.exists(ruta_cascade):
     print("El modelo Haar Cascade no se encuentra, descargando...")
     try:
-        # Usamos urlretrieve para descargar el archivo desde la URL y guardarlo en la ruta especificada
         urllib.request.urlretrieve(url_cascade, ruta_cascade)
         print("Modelo descargado exitosamente.")
     except Exception as e:
         print(f"Error al descargar el modelo: {e}")
-        exit() # Salir del script si no se puede descargar el modelo
+        exit()
 
-# --- Código original ---
+# --- Código de preprocesamiento ---
 
 # Cargar clasificador
 cara_cascade = cv2.CascadeClassifier(ruta_cascade)
 
-# Verificar si el clasificador se cargó correctamente
 if cara_cascade.empty():
     print(f"Error al cargar el archivo cascade desde la ruta: {ruta_cascade}")
     exit()
@@ -41,15 +39,19 @@ while True:
     # Convertir a gris
     gris = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # Detectar rostros
+    # Aplicar el filtro de Canny
+    bordes = cv2.Canny(gris, 100, 200)
+
+    # Detectar rostros en la imagen original
     caras = cara_cascade.detectMultiScale(gris, 1.1, 4)
 
-    # Dibujar rectángulos
+    # Dibujar rectángulos para las caras detectadas
     for (x, y, w, h) in caras:
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2) # Cambié el color a verde para diferenciar
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-    # Mostrar el frame
-    cv2.imshow("Webcam", frame)
+    # Mostrar el frame original y el de bordes
+    cv2.imshow("Webcam - Original", frame)
+    cv2.imshow("Webcam - Bordes", bordes)
 
     # Salir con la tecla 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
