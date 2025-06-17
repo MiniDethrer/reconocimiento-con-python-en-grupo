@@ -1,30 +1,45 @@
 import cv2
 import os
-import urllib.request # Biblioteca estándar de Python para manejar URLs
+import urllib.request
 
-# --- Descarga del modelo Haar Cascade (usando urllib) ---
-ruta_cascade = "haarcascade_frontalface_default.xml"
-url_cascade = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
+# --- Descarga del modelo Haar Cascade para rostros (usando urllib) ---
+ruta_cascade_cara = "haarcascade_frontalface_default.xml"
+url_cascade_cara = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
 
-# Verificar si el archivo ya existe, si no, descargarlo
-if not os.path.exists(ruta_cascade):
-    print("El modelo Haar Cascade no se encuentra, descargando...")
+if not os.path.exists(ruta_cascade_cara):
+    print("El modelo Haar Cascade para rostros no se encuentra, descargando...")
     try:
-        # Usamos urlretrieve para descargar el archivo desde la URL y guardarlo en la ruta especificada
-        urllib.request.urlretrieve(url_cascade, ruta_cascade)
-        print("Modelo descargado exitosamente.")
+        urllib.request.urlretrieve(url_cascade_cara, ruta_cascade_cara)
+        print("Modelo de rostros descargado exitosamente.")
     except Exception as e:
-        print(f"Error al descargar el modelo: {e}")
-        exit() # Salir del script si no se puede descargar el modelo
+        print(f"Error al descargar el modelo de rostros: {e}")
+        exit()
 
-# --- Código original ---
+# --- Descarga del modelo Haar Cascade para ojos (usando urllib) ---
+ruta_cascade_ojo = "haarcascade_eye.xml"
+url_cascade_ojo = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml"
 
-# Cargar clasificador
-cara_cascade = cv2.CascadeClassifier(ruta_cascade)
+if not os.path.exists(ruta_cascade_ojo):
+    print("El modelo Haar Cascade para ojos no se encuentra, descargando...")
+    try:
+        urllib.request.urlretrieve(url_cascade_ojo, ruta_cascade_ojo)
+        print("Modelo de ojos descargado exitosamente.")
+    except Exception as e:
+        print(f"Error al descargar el modelo de ojos: {e}")
+        exit()
 
-# Verificar si el clasificador se cargó correctamente
+# --- Código original modificado para reconocimiento de ojos ---
+
+# Cargar clasificadores
+cara_cascade = cv2.CascadeClassifier(ruta_cascade_cara)
+ojo_cascade = cv2.CascadeClassifier(ruta_cascade_ojo)
+
+# Verificar si los clasificadores se cargaron correctamente
 if cara_cascade.empty():
-    print(f"Error al cargar el archivo cascade desde la ruta: {ruta_cascade}")
+    print(f"Error al cargar el archivo cascade de rostros desde la ruta: {ruta_cascade_cara}")
+    exit()
+if ojo_cascade.empty():
+    print(f"Error al cargar el archivo cascade de ojos desde la ruta: {ruta_cascade_ojo}")
     exit()
 
 # Iniciar captura de video
@@ -44,12 +59,21 @@ while True:
     # Detectar rostros
     caras = cara_cascade.detectMultiScale(gris, 1.1, 4)
 
-    # Dibujar rectángulos
+    # Dibujar rectángulos en los rostros y luego detectar ojos dentro de cada rostro
     for (x, y, w, h) in caras:
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2) # Cambié el color a verde para diferenciar
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2) # Rectángulo verde para el rostro
+
+        # Región de interés (ROI) para el rostro en escala de grises y color
+        roi_gris = gris[y:y+h, x:x+w]
+        roi_color = frame[y:y+h, x:x+w]
+
+        # Detectar ojos dentro de la región del rostro
+        ojos = ojo_cascade.detectMultiScale(roi_gris)
+        for (ex, ey, ew, eh) in ojos:
+            cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (255, 0, 0), 2) # Rectángulo azul para los ojos
 
     # Mostrar el frame
-    cv2.imshow("Webcam", frame)
+    cv2.imshow("Webcam - Reconocimiento Facial y Ocular", frame)
 
     # Salir con la tecla 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
